@@ -4,17 +4,22 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from core.config import get_settings
-from core.database import close_engine, get_engine
+from core.database import build_engine
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-    settings = get_settings()
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+    settings = app.state.settings
 
     logging.basicConfig(level=settings.log_level)
-    get_engine()
+    app.state.engine = build_engine(
+        str(settings.database_url),
+        debug=settings.debug,
+        pool_size=settings.db_pool_size,
+        max_overflow=settings.db_max_overflow,
+    )
 
-    yield
-
-    await close_engine()
+    try:
+        yield
+    finally:
+        await app.state.engine.dispose()

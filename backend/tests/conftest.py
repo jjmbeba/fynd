@@ -2,6 +2,8 @@ from collections.abc import AsyncGenerator, Generator
 
 import pytest
 import pytest_asyncio
+from asgi_lifespan import LifespanManager
+from fastapi import Request
 from httpx import ASGITransport, AsyncClient
 from pydantic import AnyUrl
 from sqlalchemy.ext.asyncio import (
@@ -20,7 +22,9 @@ from main import create_app
 @pytest.fixture(scope="session")
 def settings() -> Settings:
     return Settings(
-        environment="test", database_url=AnyUrl("sqlite+aiosqlite:///test.db"), debug=True
+        environment="test",
+        database_url=AnyUrl("sqlite+aiosqlite:///:memory:"),
+        debug=True,
     )
 
 
@@ -59,13 +63,15 @@ async def db_session(engine: AsyncEngine) -> AsyncGenerator[AsyncSession]:
 @pytest_asyncio.fixture
 async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient]:
     app = create_app()
+    app.state.engine = db_session.get_bind()
 
-    async def _override_db() -> AsyncGenerator[AsyncSession]:
+    async def _override_db(_request: Request) -> AsyncGenerator[AsyncSession]:
         yield db_session
 
     app.dependency_overrides[get_db] = _override_db
 
     transport = ASGITransport(app=app)
 
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        yield ac
+    async with LifespanManager(app):
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            yield ac

@@ -1,13 +1,6 @@
 from sqlalchemy import MetaData
-from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
-
-from core.config import get_settings
 
 NAMING_CONVENTION = {
     "ix": "ix_%(column_0_label)s",
@@ -22,45 +15,17 @@ class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
 
 
-_engine: AsyncEngine | None = None
-_session_maker: async_sessionmaker[AsyncSession] | None = None
-
-
-def _build_engine() -> AsyncEngine:
-    settings = get_settings()
-
+def build_engine(
+    database_url: str,
+    *,
+    debug: bool,
+    pool_size: int,
+    max_overflow: int,
+) -> AsyncEngine:
     return create_async_engine(
-        str(settings.database_url),
-        echo=settings.debug,
-        pool_size=settings.db_pool_size,
-        max_overflow=settings.db_max_overflow,
+        database_url,
+        echo=debug,
+        pool_size=pool_size,
+        max_overflow=max_overflow,
         pool_pre_ping=True,
     )
-
-
-def get_engine() -> AsyncEngine:
-    global _engine
-
-    if _engine is None:
-        _engine = _build_engine()
-
-    return _engine
-
-
-def get_session_maker() -> async_sessionmaker[AsyncSession]:
-    global _session_maker
-
-    if _session_maker is None:
-        _session_maker = async_sessionmaker(get_engine(), expire_on_commit=False)
-
-    return _session_maker
-
-
-async def close_engine() -> None:
-    global _engine, _session_maker
-
-    if _engine is not None:
-        await _engine.dispose()
-        _engine = None
-
-    _session_maker = None
