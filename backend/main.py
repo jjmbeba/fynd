@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 
-app = FastAPI()
+
+def create_app() -> FastAPI:
+    return FastAPI(title="Fynd")
+
+
+app = create_app()
 
 
 @app.get("/")
