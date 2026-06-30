@@ -1,0 +1,17 @@
+{
+  "include": ["src", "tests", "alembic", "*.py"],
+  "exclude": [
+    "**/__pycache__",
+    "**/.venv",
+    "**/node_modules",
+    "**/alembic/versions",
+    "**/.pytest_cache",
+    "**/.mypy_cache",
+    "**/.ruff_cache"
+  ],
+  "extraPaths": ["src"],
+  "pythonPath": ".venv/bin/python",
+  "typeCheckingMode": "standard",
+  "reportMissingImports": "error",
+  "reportMissingTypeStubs": "warning"
+}
