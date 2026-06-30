@@ -21,7 +21,6 @@ class Settings(BaseSettings):
     database_url: AnyUrl
     db_pool_size: int = 20
     db_max_overflow: int = 5
-    db_echo: bool = False
 
     cors_origins: list[str] = []
 
