@@ -1,8 +1,16 @@
 from fastapi import FastAPI
 
+from api.exception_handlers import domain_error_handler, infrastructure_error_handler
+from core.exceptions import DomainError, InfrastructureError
+
 
 def create_app() -> FastAPI:
-    return FastAPI(title="Fynd")
+    app = FastAPI(title="Fynd")
+
+    app.add_exception_handler(DomainError, domain_error_handler)
+    app.add_exception_handler(InfrastructureError, infrastructure_error_handler)
+
+    return app
 
 
 app = create_app()
