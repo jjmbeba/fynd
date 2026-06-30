@@ -1,10 +1,15 @@
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Generator
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from pydantic import AnyUrl
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from api.deps import get_db
 from core.config import Settings, get_settings
@@ -20,7 +25,7 @@ def settings() -> Settings:
 
 
 @pytest.fixture(autouse=True)
-def _reset_settings_cache():
+def _reset_settings_cache() -> Generator[None]:
     get_settings.cache_clear()
     yield
 
@@ -28,7 +33,7 @@ def _reset_settings_cache():
 
 
 @pytest_asyncio.fixture
-async def engine(settings: Settings):
+async def engine(settings: Settings) -> AsyncGenerator[AsyncEngine]:
     test_engine = create_async_engine(str(settings.database_url), echo=False)
 
     async with test_engine.begin() as conn:
@@ -42,7 +47,7 @@ async def engine(settings: Settings):
 
 
 @pytest_asyncio.fixture
-async def db_session(engine) -> AsyncGenerator[AsyncSession]:
+async def db_session(engine: AsyncEngine) -> AsyncGenerator[AsyncSession]:
     session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
     async with session_maker() as session:
