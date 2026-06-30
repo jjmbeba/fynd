@@ -15,10 +15,15 @@ class Settings(BaseSettings):
     )
 
     environment: Literal["production", "development", "test"] = "development"
-    database_url: AnyUrl
-    cors_origins: list[str] = []
-
+    debug: bool = False
     api_prefix: str = "/api"
+
+    database_url: AnyUrl
+    db_pool_size: int = 20
+    db_max_overflow: int = 5
+    db_echo: bool = False
+
+    cors_origins: list[str] = []
 
     fx_base_currency: str = "KES"
     fx_provider_url: str = "https://api.frankfurter.app"
