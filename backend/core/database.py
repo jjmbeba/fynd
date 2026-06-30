@@ -54,3 +54,13 @@ def get_session_maker() -> async_sessionmaker[AsyncSession]:
         _session_maker = async_sessionmaker(get_engine(), expire_on_commit=False)
 
     return _session_maker
+
+
+async def close_engine() -> None:
+    global _engine, _session_maker
+
+    if _engine is not None:
+        await _engine.dispose()
+        _engine = None
+
+    _session_maker = None
