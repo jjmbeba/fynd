@@ -13,6 +13,9 @@ class SystemClock:
 
 class FrozenClock:
     def __init__(self, frozen: datetime) -> None:
+        if frozen.tzinfo is None:
+            raise ValueError("FrozenClock requires a timezone-aware datetime")
+
         self._frozen = frozen
 
     def now(self) -> datetime:
