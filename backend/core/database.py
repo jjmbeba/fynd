@@ -1,4 +1,7 @@
+from typing import Any
+
 from sqlalchemy import MetaData
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -22,10 +25,12 @@ def build_engine(
     pool_size: int,
     max_overflow: int,
 ) -> AsyncEngine:
-    return create_async_engine(
-        database_url,
-        echo=debug,
-        pool_size=pool_size,
-        max_overflow=max_overflow,
-        pool_pre_ping=True,
-    )
+    url = make_url(database_url)
+    kwargs: dict[str, Any] = {
+        "echo": debug,
+        "pool_pre_ping": True,
+    }
+    if not url.drivername.startswith("sqlite"):
+        kwargs["pool_size"] = pool_size
+        kwargs["max_overflow"] = max_overflow
+    return create_async_engine(database_url, **kwargs)
