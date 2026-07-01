@@ -19,7 +19,7 @@ lint:
 	cd backend && uv run ruff check .
 
 type:
-	cd backend && uv run mypy .
+	cd backend && uv run mypy --explicit-package-bases .
 
 format:
 	cd backend && uv run ruff format .
