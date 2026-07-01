@@ -1,6 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
+from typing import Annotated
 
 from sqlalchemy import (
     Boolean,
@@ -16,6 +17,8 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column
 
 from core.database import Base
+
+Money = Annotated[Decimal, mapped_column(Numeric(precision=18, scale=8))]
 
 
 class ScrapeStatus(StrEnum):
@@ -51,8 +54,8 @@ class Listing(Base):
     title: Mapped[str] = mapped_column(String(255))
     is_currently_on_sale: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    __table_args__ = UniqueConstraint(
-        "store_id", "store_product_id", name="uq_listings_store_product"
+    __table_args__ = (
+        UniqueConstraint("store_id", "store_product_id", name="uq_listings_store_product"),
     )
 
 
@@ -63,9 +66,9 @@ class PriceSnapshot(Base):
 
     listing_id: Mapped[int] = mapped_column(ForeignKey("listings.id"), index=True)
 
-    base_amount: Mapped[Decimal] = mapped_column(Numeric(precision=18, scale=8))
-    native_amount: Mapped[Decimal] = mapped_column(Numeric(precision=18, scale=8))
-    kes_amount: Mapped[Decimal] = mapped_column(Numeric(precision=18, scale=8))
+    base_amount: Mapped[Money]
+    native_amount: Mapped[Money]
+    kes_amount: Mapped[Money]
 
     currency: Mapped[str] = mapped_column(String(3))
 
@@ -82,10 +85,10 @@ class FxRate(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
 
     source_currency: Mapped[str] = mapped_column(String(3))
-    rate_to_kes: Mapped[Decimal] = mapped_column(Numeric(precision=18, scale=8))
+    rate_to_kes: Mapped[Money]
     date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
-    __table_args__ = UniqueConstraint("date", "source_currency", name="uq_fx_rates_date_source")
+    __table_args__ = (UniqueConstraint("date", "source_currency", name="uq_fx_rates_date_source"),)
 
 
 class ScrapeRun(Base):
