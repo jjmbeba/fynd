@@ -1,4 +1,4 @@
-.PHONY: install dev dev-backend dev-frontend test lint type format migrate run backup
+.PHONY: install dev dev-backend dev-frontend test lint type format migrate migrate-down migrate-revision run backup
 
 install:
 	cd backend && uv sync --all-extras
@@ -25,8 +25,13 @@ format:
 	cd backend && uv run ruff format .
 
 migrate:
-	@echo "No migrations yet \342\200\224 add alembic init in Phase 1+"
-	@exit 0
+	cd backend && uv run alembic upgrade head
+
+migrate-down:
+	cd backend && uv run alembic downgrade -1
+
+migrate-revision:
+	cd backend && uv run alembic revision --autogenerate -m "$(name)"
 
 run:
 	cd backend && uv run uvicorn main:app --port 8000
