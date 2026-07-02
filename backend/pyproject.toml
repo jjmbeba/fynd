@@ -44,6 +44,7 @@ quote-style = "double"
 strict = true
 python_version = "3.14"
 warn_unused_ignores = true
+explicit_package_bases = true
 exclude = [
     "alembic/versions/",
     ".venv/",
