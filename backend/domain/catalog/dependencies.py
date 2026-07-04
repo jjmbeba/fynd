@@ -8,11 +8,14 @@ from api.deps import get_db
 from domain.catalog.repositories.price_snapshot_repository import PriceSnapshotRepository
 from domain.catalog.repositories.scrape_run_repository import ScrapeRunRepository
 from domain.catalog.repositories.store_repository import StoreRepository
-from domain.catalog.schemas import CatalogHealth, DealRead, FreeGameRead, RefreshStatus, StoreRead
-from domain.catalog.services.get_catalog_health import get_catalog_health
-from domain.catalog.services.list_deals import list_deals
-from domain.catalog.services.list_free_games import list_free_games
-from domain.catalog.services.list_stores import list_stores
+from domain.catalog.schemas import (
+    CatalogHealth,
+    DealRead,
+    FreeGameRead,
+    RefreshStatus,
+    StoreRead,
+    StoreScrapeStatus,
+)
 
 DBSession = Annotated[AsyncSession, Depends(get_db)]
 
@@ -32,19 +35,47 @@ async def get_scrape_run_repository(session: DBSession) -> ScrapeRunRepository:
 async def get_deals_service(
     repository: Annotated[PriceSnapshotRepository, Depends(get_price_snapshot_repository)],
 ) -> list[DealRead]:
-    return await list_deals(repository)
+    rows = await repository.latest_sales_with_listing()
+    return [
+        DealRead(
+            title=listing.title,
+            listing_id=listing.id,
+            store_slug=store.slug,
+            store_display_name=store.display_name,
+            base_amount=snapshot.base_amount,
+            native_amount=snapshot.native_amount,
+            kes_amount=snapshot.kes_amount,
+            currency=snapshot.currency,
+            discount_percent=snapshot.discount_percent,
+            observed_at=snapshot.observed_at,
+        )
+        for snapshot, listing, store in rows
+    ]
 
 
 async def get_free_games_service(
     repository: Annotated[PriceSnapshotRepository, Depends(get_price_snapshot_repository)],
 ) -> list[FreeGameRead]:
-    return await list_free_games(repository)
+    rows = await repository.latest_free_games_with_listing()
+    return [
+        FreeGameRead(
+            title=listing.title,
+            listing_id=listing.id,
+            store_slug=store.slug,
+            store_display_name=store.display_name,
+            currency=snapshot.currency,
+            base_amount=snapshot.base_amount,
+            observed_at=snapshot.observed_at,
+        )
+        for snapshot, listing, store in rows
+    ]
 
 
 async def get_stores_service(
     repository: Annotated[StoreRepository, Depends(get_store_repository)],
 ) -> list[StoreRead]:
-    return await list_stores(repository)
+    stores = await repository.list_active()
+    return [StoreRead.model_validate(store) for store in stores]
 
 
 def get_refresh_service() -> RefreshStatus:
@@ -54,4 +85,16 @@ def get_refresh_service() -> RefreshStatus:
 async def get_health_service(
     repository: Annotated[ScrapeRunRepository, Depends(get_scrape_run_repository)],
 ) -> CatalogHealth:
-    return await get_catalog_health(repository)
+    rows = await repository.latest_runs_with_store()
+    stores = [
+        StoreScrapeStatus(
+            store_slug=store.slug,
+            status=run.status,
+            listings_observed=run.listings_observed,
+            error_message=run.error_message,
+            started_at=run.started_at,
+            last_scrape_at=run.finished_at,
+        )
+        for run, store in rows
+    ]
+    return CatalogHealth(stores=stores)
