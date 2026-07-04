@@ -6,6 +6,7 @@ from httpx import ASGITransport, AsyncClient
 from pydantic import AnyUrl
 
 from core.config import Settings
+from core.database import Base
 from main import create_app
 
 
@@ -19,6 +20,11 @@ async def client() -> AsyncGenerator[AsyncClient]:
     app = create_app(settings=settings)
 
     async with LifespanManager(app):
+        engine = app.state.engine
+
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
             yield ac

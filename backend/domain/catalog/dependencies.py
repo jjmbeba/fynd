@@ -18,8 +18,14 @@ from domain.catalog.schemas import (
     StoreRead,
     StoreScrapeStatus,
 )
+from domain.catalog.services.refresh_catalog import (
+    RefreshCatalogService,
+    build_refresh_catalog_service,
+)
 from infrastructure.fx.client import FxClient
 from infrastructure.fx.registry import get_active_fx_clients
+from infrastructure.scrapers.client import StoreScraper
+from infrastructure.scrapers.registry import get_active_scrapers
 
 DBSession = Annotated[AsyncSession, Depends(get_db)]
 
@@ -90,6 +96,14 @@ async def get_stores_service(
 ) -> list[StoreRead]:
     stores = await repository.list_active()
     return [StoreRead.model_validate(store) for store in stores]
+
+
+async def get_refresh_catalog_service(
+    session: DBSession,
+    scrapers: Annotated[list[StoreScraper], Depends(get_active_scrapers)],
+    fx_clients: Annotated[list[FxClient], Depends(get_active_fx_clients)],
+) -> RefreshCatalogService:
+    return build_refresh_catalog_service(session=session, scrapers=scrapers, fx_clients=fx_clients)
 
 
 def get_refresh_service() -> RefreshStatus:
