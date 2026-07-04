@@ -1,4 +1,6 @@
 from collections.abc import Sequence
+from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +12,32 @@ from domain.catalog.repositories._latest_per_group import latest_per_group_subqu
 class PriceSnapshotRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    async def insert(
+        self,
+        *,
+        listing_id: int,
+        base_amount: Decimal,
+        native_amount: Decimal,
+        kes_amount: Decimal,
+        currency: str,
+        discount_percent: int | None,
+        observed_at: datetime,
+    ) -> PriceSnapshot:
+        snapshot = PriceSnapshot(
+            listing_id=listing_id,
+            base_amount=base_amount,
+            native_amount=native_amount,
+            kes_amount=kes_amount,
+            currency=currency,
+            discount_percent=discount_percent,
+            observed_at=observed_at,
+        )
+
+        self._session.add(snapshot)
+        await self._session.flush()
+
+        return snapshot
 
     async def latest_sales_with_listing(
         self,

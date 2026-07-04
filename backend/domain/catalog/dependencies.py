@@ -5,6 +5,8 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_db
+from domain.catalog.repositories.fx_rate_repository import FxRateRepository
+from domain.catalog.repositories.listing_repository import ListingRepository
 from domain.catalog.repositories.price_snapshot_repository import PriceSnapshotRepository
 from domain.catalog.repositories.scrape_run_repository import ScrapeRunRepository
 from domain.catalog.repositories.store_repository import StoreRepository
@@ -16,6 +18,8 @@ from domain.catalog.schemas import (
     StoreRead,
     StoreScrapeStatus,
 )
+from infrastructure.fx.client import FxClient
+from infrastructure.fx.registry import get_active_fx_clients
 
 DBSession = Annotated[AsyncSession, Depends(get_db)]
 
@@ -30,6 +34,16 @@ async def get_price_snapshot_repository(session: DBSession) -> PriceSnapshotRepo
 
 async def get_scrape_run_repository(session: DBSession) -> ScrapeRunRepository:
     return ScrapeRunRepository(session)
+
+
+async def get_listing_repository(session: DBSession) -> ListingRepository:
+    return ListingRepository(session)
+
+
+async def get_fx_rate_repository(
+    session: DBSession, fx_clients: Annotated[list[FxClient], Depends(get_active_fx_clients)]
+) -> FxRateRepository:
+    return FxRateRepository(session, fx_client=fx_clients[0])
 
 
 async def get_deals_service(
