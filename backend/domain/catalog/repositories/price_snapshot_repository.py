@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,11 +40,10 @@ class PriceSnapshotRepository:
 
         return snapshot
 
-    async def latest_sales_with_listing(
-        self,
-    ) -> Sequence[tuple[PriceSnapshot, Listing, Store]]:
+    def _latest_with_listing_query(self) -> Any:
+        """Return a base query that selects latest PriceSnapshot + Listing + Store join."""
         latest_sq = latest_per_group_subquery(PriceSnapshot.listing_id, PriceSnapshot.observed_at)
-        statement = (
+        return (
             select(PriceSnapshot, Listing, Store)
             .join(
                 latest_sq,
@@ -52,6 +52,13 @@ class PriceSnapshotRepository:
             )
             .join(Listing, PriceSnapshot.listing_id == Listing.id)
             .join(Store, Listing.store_id == Store.id)
+        )
+
+    async def latest_sales_with_listing(
+        self,
+    ) -> Sequence[tuple[PriceSnapshot, Listing, Store]]:
+        statement = (
+            self._latest_with_listing_query()
             .where(Listing.is_currently_on_sale.is_(True))
             .order_by(PriceSnapshot.kes_amount)
         )
@@ -60,16 +67,8 @@ class PriceSnapshotRepository:
     async def latest_free_games_with_listing(
         self,
     ) -> Sequence[tuple[PriceSnapshot, Listing, Store]]:
-        latest_sq = latest_per_group_subquery(PriceSnapshot.listing_id, PriceSnapshot.observed_at)
         statement = (
-            select(PriceSnapshot, Listing, Store)
-            .join(
-                latest_sq,
-                (PriceSnapshot.listing_id == latest_sq.c.group_id)
-                & (PriceSnapshot.observed_at == latest_sq.c.latest),
-            )
-            .join(Listing, PriceSnapshot.listing_id == Listing.id)
-            .join(Store, Listing.store_id == Store.id)
+            self._latest_with_listing_query()
             .where(PriceSnapshot.discount_percent == 100)
             .order_by(PriceSnapshot.observed_at.desc())
         )

@@ -24,7 +24,7 @@ class ListingRepository:
             .values(values)
             .on_conflict_do_update(
                 index_elements=["store_id", "store_product_id"],
-                set_={"is_currently_on_sale": is_currently_on_sale},
+                set_={"title": title, "is_currently_on_sale": is_currently_on_sale},
             )
         )
 

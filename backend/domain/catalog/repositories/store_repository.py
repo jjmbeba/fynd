@@ -25,9 +25,7 @@ class StoreRepository:
             .on_conflict_do_update(
                 index_elements=["slug"], set_={"display_name": display_name, "is_active": True}
             )
+            .returning(Store)
         )
 
-        await self._session.execute(upsert)
-        statement = select(Store).where(Store.slug == slug)
-
-        return (await self._session.execute(statement)).scalar_one()
+        return (await self._session.execute(upsert)).scalar_one()
