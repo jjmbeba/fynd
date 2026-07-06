@@ -5,12 +5,14 @@ from contextlib import asynccontextmanager
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from core.config import Settings
 from core.database import build_engine
 from domain.catalog.services.refresh_catalog import build_refresh_catalog_service
+from infrastructure.fx.client import FxClient
 from infrastructure.fx.registry import get_active_fx_clients
+from infrastructure.scrapers.client import StoreScraper
 from infrastructure.scrapers.registry import get_active_scrapers
 
 
@@ -40,12 +42,17 @@ def _build_scheduler(app: FastAPI, settings: Settings) -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler()
 
     async def _scheduled_refresh() -> None:
+        session: AsyncSession
+        fx_clients: list[FxClient] = []
+        scrapers: list[StoreScraper] = []
         async with async_sessionmaker(app.state.engine)() as session:
             try:
+                fx_clients = get_active_fx_clients()
+                scrapers = get_active_scrapers()
                 service = build_refresh_catalog_service(
                     session=session,
-                    scrapers=get_active_scrapers(),
-                    fx_clients=get_active_fx_clients(),
+                    scrapers=scrapers,
+                    fx_client=fx_clients[0],
                 )
 
                 await service.refresh_all()
@@ -53,6 +60,11 @@ def _build_scheduler(app: FastAPI, settings: Settings) -> AsyncIOScheduler:
             except Exception:
                 await session.rollback()
                 logging.exception("Scheduled refresh failed")
+            finally:
+                for scraper in scrapers:
+                    await scraper.aclose()
+                for client in fx_clients:
+                    await client.aclose()
 
     scheduler.add_job(
         _scheduled_refresh,
