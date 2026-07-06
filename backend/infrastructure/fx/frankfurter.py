@@ -1,5 +1,5 @@
 import logging
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import ClassVar, TypedDict
 
@@ -32,7 +32,7 @@ class FrankfurterClient:
         return "frankfurter"
 
     async def fetch_rate(self, source: str, target: str, on: date) -> Decimal:
-        endpoint = "latest" if on >= date.today() else on.isoformat()
+        endpoint = "latest" if on >= datetime.now(UTC).date() else on.isoformat()
         response = await self._client.get(endpoint, params={"from": source, "to": target})
 
         response.raise_for_status()

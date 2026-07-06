@@ -1,4 +1,3 @@
-from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import Depends
@@ -14,7 +13,6 @@ from domain.catalog.schemas import (
     CatalogHealth,
     DealRead,
     FreeGameRead,
-    RefreshStatus,
     StoreRead,
     StoreScrapeStatus,
 )
@@ -24,8 +22,7 @@ from domain.catalog.services.refresh_catalog import (
 )
 from infrastructure.fx.client import FxClient
 from infrastructure.fx.registry import get_active_fx_clients
-from infrastructure.scrapers.client import StoreScraper
-from infrastructure.scrapers.registry import get_active_scrapers
+from infrastructure.scrapers import StoreScraper, get_active_scrapers
 
 DBSession = Annotated[AsyncSession, Depends(get_db)]
 
@@ -47,9 +44,9 @@ async def get_listing_repository(session: DBSession) -> ListingRepository:
 
 
 async def get_fx_rate_repository(
-    session: DBSession, fx_clients: Annotated[list[FxClient], Depends(get_active_fx_clients)]
+    session: DBSession,
 ) -> FxRateRepository:
-    return FxRateRepository(session, fx_client=fx_clients[0])
+    return FxRateRepository(session)
 
 
 async def get_deals_service(
@@ -103,11 +100,11 @@ async def get_refresh_catalog_service(
     scrapers: Annotated[list[StoreScraper], Depends(get_active_scrapers)],
     fx_clients: Annotated[list[FxClient], Depends(get_active_fx_clients)],
 ) -> RefreshCatalogService:
-    return build_refresh_catalog_service(session=session, scrapers=scrapers, fx_clients=fx_clients)
-
-
-def get_refresh_service() -> RefreshStatus:
-    return RefreshStatus(started_at=datetime.now(UTC), stores=[])
+    if not fx_clients:
+        raise ValueError("At least one active FX client is required")
+    return build_refresh_catalog_service(
+        session=session, scrapers=scrapers, fx_client=fx_clients[0]
+    )
 
 
 async def get_health_service(
