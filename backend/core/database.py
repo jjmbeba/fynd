@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import MetaData
+from sqlalchemy import MetaData, event
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
@@ -33,4 +33,17 @@ def build_engine(
     if not url.drivername.startswith("sqlite"):
         kwargs["pool_size"] = pool_size
         kwargs["max_overflow"] = max_overflow
-    return create_async_engine(database_url, **kwargs)
+
+    engine = create_async_engine(database_url, **kwargs)
+
+    if url.drivername.startswith("sqlite"):
+
+        @event.listens_for(engine.sync_engine, "connect")
+        def _set_sqlite_isolation(dbapi_conn: Any, connection_record: Any) -> None:  # noqa: ARG001
+            dbapi_conn.isolation_level = None
+
+        @event.listens_for(engine.sync_engine, "begin")
+        def _emit_sqlite_begin(conn: Any) -> None:
+            conn.exec_driver_sql("BEGIN")
+
+    return engine
