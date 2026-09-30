@@ -1,3 +1,4 @@
+from collections.abc import AsyncGenerator
 from typing import Annotated
 
 from fastapi import Depends
@@ -10,10 +11,7 @@ from domain.catalog.repositories.store_repository import StoreRepository
 from domain.catalog.schemas import CatalogHealth, StoreRead, StoreScrapeStatus
 from domain.catalog.services.deals import DealsService
 from domain.catalog.services.free_games import FreeGamesService
-from domain.catalog.services.refresh_catalog import (
-    RefreshCatalogService,
-    build_refresh_catalog_service,
-)
+from domain.catalog.services.scraping import ScrapingService, build_scraping_service
 from infrastructure.fx.client import FxClient
 from infrastructure.fx.registry import get_active_fx_clients
 from infrastructure.scrapers import StoreScraper, get_active_scrapers
@@ -31,6 +29,24 @@ async def get_price_snapshot_repository(session: DBSession) -> PriceSnapshotRepo
 
 async def get_scrape_run_repository(session: DBSession) -> ScrapeRunRepository:
     return ScrapeRunRepository(session)
+
+
+async def get_request_scrapers() -> AsyncGenerator[list[StoreScraper]]:
+    scrapers = get_active_scrapers()
+    try:
+        yield scrapers
+    finally:
+        for scraper in scrapers:
+            await scraper.aclose()
+
+
+async def get_request_fx_clients() -> AsyncGenerator[list[FxClient]]:
+    clients = get_active_fx_clients()
+    try:
+        yield clients
+    finally:
+        for client in clients:
+            await client.aclose()
 
 
 async def get_deals_service(
@@ -52,16 +68,14 @@ async def get_stores_service(
     return [StoreRead.model_validate(store) for store in stores]
 
 
-async def get_refresh_catalog_service(
+async def get_scraping_service(
     session: DBSession,
-    scrapers: Annotated[list[StoreScraper], Depends(get_active_scrapers)],
-    fx_clients: Annotated[list[FxClient], Depends(get_active_fx_clients)],
-) -> RefreshCatalogService:
+    scrapers: Annotated[list[StoreScraper], Depends(get_request_scrapers)],
+    fx_clients: Annotated[list[FxClient], Depends(get_request_fx_clients)],
+) -> ScrapingService:
     if not fx_clients:
         raise ValueError("At least one active FX client is required")
-    return build_refresh_catalog_service(
-        session=session, scrapers=scrapers, fx_client=fx_clients[0]
-    )
+    return build_scraping_service(session=session, scrapers=scrapers, fx_client=fx_clients[0])
 
 
 async def get_health_service(

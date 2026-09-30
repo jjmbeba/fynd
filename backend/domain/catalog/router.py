@@ -7,13 +7,13 @@ from domain.catalog.dependencies import (
     get_deals_service,
     get_free_games_service,
     get_health_service,
-    get_refresh_catalog_service,
+    get_scraping_service,
     get_stores_service,
 )
 from domain.catalog.schemas import CatalogHealth, DealRead, FreeGameRead, RefreshStatus, StoreRead
 from domain.catalog.services.deals import DealsService
 from domain.catalog.services.free_games import FreeGamesService
-from domain.catalog.services.refresh_catalog import RefreshCatalogService
+from domain.catalog.services.scraping import ScrapingService
 
 router = APIRouter(prefix="/catalog", tags=["catalog"])
 
@@ -58,9 +58,9 @@ async def list_free_games(
     summary="Trigger immediate scrape of all active stores",
 )
 async def trigger_refresh(
-    result: Annotated[RefreshCatalogService, Depends(get_refresh_catalog_service)],
+    service: Annotated[ScrapingService, Depends(get_scraping_service)],
 ) -> RefreshStatus:
-    return await result.refresh_all()
+    return await service.run_all()
 
 
 @router.get(

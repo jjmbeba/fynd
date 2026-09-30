@@ -1,4 +1,6 @@
-from sqlalchemy import select
+from collections.abc import Sequence
+
+from sqlalchemy import select, update
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,3 +37,24 @@ class ListingRepository:
         )
 
         return (await self._session.execute(statement)).scalar_one()
+
+    async def list_on_sale_product_ids(self, *, store_id: int) -> Sequence[str]:
+        statement = select(Listing.store_product_id).where(
+            Listing.store_id == store_id,
+            Listing.is_currently_on_sale.is_(True),
+        )
+        return (await self._session.execute(statement)).scalars().all()
+
+    async def mark_off_sale(self, *, store_id: int, store_product_ids: Sequence[str]) -> None:
+        if not store_product_ids:
+            return
+
+        statement = (
+            update(Listing)
+            .where(
+                Listing.store_id == store_id,
+                Listing.store_product_id.in_(list(store_product_ids)),
+            )
+            .values(is_currently_on_sale=False)
+        )
+        await self._session.execute(statement)
