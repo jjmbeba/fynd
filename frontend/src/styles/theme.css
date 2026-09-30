@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --color-paper: #f3f5f7;
+  --color-ink: #1c2430;
+  --color-muted: #5c6778;
+  --color-line: #d5dbe3;
+  --color-sale: #1f7a4d;
+  --color-card: #ffffff;
+  --color-night: #14181f;
+  --color-mist: #e7ebf0;
+  --color-night-muted: #a8b0bd;
+  --color-night-line: #2a3340;
+  --color-night-card: #1b212b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}
