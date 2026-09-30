@@ -1,6 +1,7 @@
+from decimal import Decimal
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from domain.catalog.dependencies import (
     get_deals_service,
@@ -10,6 +11,8 @@ from domain.catalog.dependencies import (
     get_stores_service,
 )
 from domain.catalog.schemas import CatalogHealth, DealRead, FreeGameRead, RefreshStatus, StoreRead
+from domain.catalog.services.deals import DealsService
+from domain.catalog.services.free_games import FreeGamesService
 from domain.catalog.services.refresh_catalog import RefreshCatalogService
 
 router = APIRouter(prefix="/catalog", tags=["catalog"])
@@ -23,10 +26,19 @@ def list_stores(
 
 
 @router.get("/deals", response_model=list[DealRead], summary="List current deals")
-def list_deals(
-    deals: Annotated[list[DealRead], Depends(get_deals_service)],
+async def list_deals(
+    service: Annotated[DealsService, Depends(get_deals_service)],
+    store: Annotated[list[str] | None, Query()] = None,
+    max_kes_price: Decimal | None = None,
+    min_discount_percent: int | None = None,
+    q: str | None = None,
 ) -> list[DealRead]:
-    return deals
+    return await service.list(
+        store_slugs=store,
+        max_kes_price=max_kes_price,
+        min_discount_percent=min_discount_percent,
+        query=q,
+    )
 
 
 @router.get(
@@ -34,10 +46,10 @@ def list_deals(
     response_model=list[FreeGameRead],
     summary="List currently free games",
 )
-def list_free_games(
-    games: Annotated[list[FreeGameRead], Depends(get_free_games_service)],
+async def list_free_games(
+    service: Annotated[FreeGamesService, Depends(get_free_games_service)],
 ) -> list[FreeGameRead]:
-    return games
+    return await service.list()
 
 
 @router.post(

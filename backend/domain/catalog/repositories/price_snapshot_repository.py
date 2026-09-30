@@ -10,6 +10,11 @@ from domain.catalog.models import Listing, PriceSnapshot, Store
 from domain.catalog.repositories._latest_per_group import latest_per_group_subquery
 
 
+def _contains_pattern(query: str) -> str:
+    escaped = query.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
+
+
 class PriceSnapshotRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -56,12 +61,25 @@ class PriceSnapshotRepository:
 
     async def latest_sales_with_listing(
         self,
+        *,
+        store_slugs: Sequence[str] | None = None,
+        max_kes_price: Decimal | None = None,
+        min_discount_percent: int | None = None,
+        query: str | None = None,
     ) -> Sequence[tuple[PriceSnapshot, Listing, Store]]:
-        statement = (
-            self._latest_with_listing_query()
-            .where(Listing.is_currently_on_sale.is_(True))
-            .order_by(PriceSnapshot.kes_amount)
-        )
+        statement = self._latest_with_listing_query().where(Listing.is_currently_on_sale.is_(True))
+
+        if store_slugs:
+            statement = statement.where(Store.slug.in_(list(store_slugs)))
+        if max_kes_price is not None:
+            statement = statement.where(PriceSnapshot.kes_amount <= max_kes_price)
+        if min_discount_percent is not None:
+            statement = statement.where(PriceSnapshot.discount_percent >= min_discount_percent)
+        if query and query.strip():
+            statement = statement.where(Listing.title.ilike(_contains_pattern(query), escape="\\"))
+
+        savings = PriceSnapshot.base_amount - PriceSnapshot.native_amount
+        statement = statement.order_by(savings.desc(), Listing.id.asc())
         return (await self._session.execute(statement)).tuples().all()
 
     async def latest_free_games_with_listing(
