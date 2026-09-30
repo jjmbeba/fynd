@@ -9,14 +9,14 @@ logger = logging.getLogger(__name__)
 
 
 class _FrankfurterResponse(TypedDict, total=False):
-    amount: float
     base: str
+    quote: str
     date: str
-    rates: dict[str, float]
+    rate: float
 
 
 class FrankfurterClient:
-    BASE_URL: ClassVar[str] = "https://api.frankfurter.app"
+    BASE_URL: ClassVar[str] = "https://api.frankfurter.dev/v2"
     REQUEST_TIMEOUT: ClassVar[float] = 30.0
 
     def __init__(self, http_client: AsyncClient | None = None) -> None:
@@ -24,6 +24,7 @@ class FrankfurterClient:
         self._client = http_client or AsyncClient(
             base_url=self.BASE_URL,
             timeout=self.REQUEST_TIMEOUT,
+            follow_redirects=True,
             headers={"Accept": "application/json"},
         )
 
@@ -32,14 +33,12 @@ class FrankfurterClient:
         return "frankfurter"
 
     async def fetch_rate(self, source: str, target: str, on: date) -> Decimal:
-        endpoint = "latest" if on >= datetime.now(UTC).date() else on.isoformat()
-        response = await self._client.get(endpoint, params={"from": source, "to": target})
+        params = {} if on >= datetime.now(UTC).date() else {"date": on.isoformat()}
+        response = await self._client.get(f"rate/{source}/{target}", params=params)
 
         response.raise_for_status()
         payload: _FrankfurterResponse = response.json()
-
-        rates = payload.get("rates") or {}
-        rate = rates.get(target)
+        rate = payload.get("rate")
 
         if rate is None:
             raise ValueError(f"Frankfurter response missing rate for {target}")

@@ -52,6 +52,7 @@ class Listing(Base):
     store_product_id: Mapped[str] = mapped_column(String(64))
 
     title: Mapped[str] = mapped_column(String(255))
+    image_url: Mapped[str | None] = mapped_column(String(2048))
     is_currently_on_sale: Mapped[bool] = mapped_column(Boolean, default=False)
 
     __table_args__ = (

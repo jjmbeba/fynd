@@ -27,6 +27,7 @@ class DealsService:
             DealRead(
                 title=listing.title,
                 listing_id=listing.id,
+                image_url=listing.image_url,
                 store_slug=store.slug,
                 store_display_name=store.display_name,
                 base_amount=snapshot.base_amount,

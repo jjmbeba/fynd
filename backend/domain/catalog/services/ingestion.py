@@ -103,6 +103,7 @@ class IngestionService:
                 is_currently_on_sale=is_on_sale,
                 store_product_id=listing.store_product_id,
                 title=listing.title,
+                image_url=listing.image_url,
             )
             await self._snapshots.insert(
                 listing_id=db_listing.id,

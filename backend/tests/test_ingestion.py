@@ -191,13 +191,20 @@ class FakeListingRepository:
         self.off_sale: list[tuple[int, list[str]]] = []
 
     async def upsert(
-        self, *, store_id: int, store_product_id: str, title: str, is_currently_on_sale: bool
+        self,
+        *,
+        store_id: int,
+        store_product_id: str,
+        title: str,
+        image_url: str | None,
+        is_currently_on_sale: bool,
     ) -> Listing:
         listing = Listing(
             id=len(self.upserts) + 1,
             store_id=store_id,
             store_product_id=store_product_id,
             title=title,
+            image_url=image_url,
             is_currently_on_sale=is_currently_on_sale,
         )
         self.upserts.append(listing)
