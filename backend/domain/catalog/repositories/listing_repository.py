@@ -12,12 +12,19 @@ class ListingRepository:
         self._session = session
 
     async def upsert(
-        self, *, store_id: int, store_product_id: str, title: str, is_currently_on_sale: bool
+        self,
+        *,
+        store_id: int,
+        store_product_id: str,
+        title: str,
+        image_url: str | None,
+        is_currently_on_sale: bool,
     ) -> Listing:
         values = {
             "store_id": store_id,
             "store_product_id": store_product_id,
             "title": title,
+            "image_url": image_url,
             "is_currently_on_sale": is_currently_on_sale,
         }
 
@@ -26,7 +33,11 @@ class ListingRepository:
             .values(values)
             .on_conflict_do_update(
                 index_elements=["store_id", "store_product_id"],
-                set_={"title": title, "is_currently_on_sale": is_currently_on_sale},
+                set_={
+                    "title": title,
+                    "image_url": image_url,
+                    "is_currently_on_sale": is_currently_on_sale,
+                },
             )
         )
 

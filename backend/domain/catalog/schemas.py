@@ -25,6 +25,7 @@ class StoreRead(BaseModel):
 class DealRead(BaseModel):
     title: str
     listing_id: int
+    image_url: str | None
 
     store_slug: str
     store_display_name: str
@@ -42,6 +43,7 @@ class DealRead(BaseModel):
 class FreeGameRead(BaseModel):
     title: str
     listing_id: int
+    image_url: str | None
 
     store_slug: str
     store_display_name: str

@@ -22,12 +22,14 @@ async def _seed(app: FastAPI) -> None:
             store_id=store.id,
             store_product_id="hades",
             title="Hades",
+            image_url="https://example.com/hades.jpg",
             is_currently_on_sale=True,
         )
         free = Listing(
             store_id=store.id,
             store_product_id="freebie",
             title="Freebie",
+            image_url="https://example.com/freebie.jpg",
             is_currently_on_sale=False,
         )
         session.add_all([deal, free])
@@ -90,6 +92,7 @@ async def test_list_deals(client: AsyncClient, app: FastAPI) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body[0]["title"] == "Hades"
+    assert body[0]["image_url"] == "https://example.com/hades.jpg"
     assert Decimal(body[0]["kes_amount"]) == Decimal("1300")
 
     missed = await client.get("/api/v1/catalog/deals", params={"q": "Nope"})
@@ -104,6 +107,7 @@ async def test_list_free_games(client: AsyncClient, app: FastAPI) -> None:
 
     assert response.status_code == 200
     assert response.json()[0]["title"] == "Freebie"
+    assert response.json()[0]["image_url"] == "https://example.com/freebie.jpg"
 
 
 async def test_catalog_health(client: AsyncClient, app: FastAPI) -> None:
