@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = []
 
     fx_base_currency: str = "KES"
-    fx_provider_url: str = "https://api.frankfurter.app"
+    fx_provider_url: str = "https://api.frankfurter.dev/v2"
 
     scrape_hour_local: int = 6
 
